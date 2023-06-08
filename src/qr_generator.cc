@@ -11,7 +11,7 @@ int main() {
   std::cout << "Enter text to be converted to QR Code: ";
   std::getline(std::cin, text);
 
-  QRCode code(text, QRCode::ErrCor::kHigh, 9);
+  QRCode code(text);
 
   std::cout << "Version: " << code.getVersion() << " Encoding Mode: " << code.getEncoding() << " Bits Per Char: "
             << code.getBitsPerChar() << " Mask: " << code.getMask() << " Size (H & W): " << code.getSize() << "\n";
