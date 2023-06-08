@@ -89,8 +89,8 @@ class QRCode {
 
   // Encoding functions
   std::vector<std::uint8_t> encodeText(std::string_view);                   // Encodes text based on encoding method.
-  std::vector<std::uint8_t> generateEDC(std::vector<std::uint8_t>&, int);   // Generates the correct error data correction codewords.
-  std::vector<std::uint8_t> addEDCInterleave(std::vector<std::uint8_t>&);   // Splits data into blocks, appends EDC, and interleaves bits.
+  std::vector<std::uint8_t> generateEDC(const std::vector<std::uint8_t>&, int);   // Generates the correct error data correction codewords.
+  std::vector<std::uint8_t> addEDCInterleave(const std::vector<std::uint8_t>&);   // Splits data into blocks, appends EDC, and interleaves bits.
 
   // Reed Solomon Math 
   void rsGenerateLogExp();                                             // Generates logarithmic and exponential tables.

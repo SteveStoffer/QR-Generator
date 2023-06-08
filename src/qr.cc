@@ -476,7 +476,7 @@ std::vector<std::uint8_t> QRCode::encodeText(std::string_view text) {
   return codewords;
 }
 
-std::vector<std::uint8_t> QRCode::generateEDC(std::vector<std::uint8_t>& data, int codewords) {
+std::vector<std::uint8_t> QRCode::generateEDC(const std::vector<std::uint8_t>& data, int codewords) {
 
   // The degree will always be the total amount of codewords - the amount of data codewords.
   int degree = codewords - data.size();
@@ -484,13 +484,13 @@ std::vector<std::uint8_t> QRCode::generateEDC(std::vector<std::uint8_t>& data, i
   // Create a message polynomial with a size of total codewords. Copy the data codewords into
   // it and fill the remaining space with zeros.
   std::vector<std::uint8_t> messagePoly(codewords, 0);
-  std::copy(data.begin(), data.end(), messagePoly.begin());
+  std::copy(data.cbegin(), data.cend(), messagePoly.begin());
 
   // Divide the message polynomial by the generated polynomial and return the remainder.
   return reedSolomonPolyDiv(messagePoly, rsGeneratePoly(degree));
 }
 
-std::vector<std::uint8_t> QRCode::addEDCInterleave(std::vector<std::uint8_t>& data) {
+std::vector<std::uint8_t> QRCode::addEDCInterleave(const std::vector<std::uint8_t>& data) {
 
   // Generate log and exponent tables
   rsGenerateLogExp();
