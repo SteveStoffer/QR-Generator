@@ -13,8 +13,10 @@ int main() {
 
   QRCode code(text);
 
-  std::cout << "Version: " << code.getVersion() << " Encoding Mode: " << code.getEncoding() << " Bits Per Char: "
-            << code.getBitsPerChar() << " Mask: " << code.getMask() << " Size (H & W): " << code.getSize() << "\n";
+  std::cout << "Version: " << code.getVersion() << " Encoding Mode: " 
+            << code.getEncoding() << " Bits Per Char: "
+            << code.getBitsPerChar() << " Mask: " << code.getMask() 
+            << " Size (H & W): " << code.getSize() << "\n";
   
   code.printQR();
   return 0;

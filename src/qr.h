@@ -53,8 +53,8 @@ class QRCode {
   int getMask() { return mask_; }
   std::string getText() { return plain_text_; }
 
-  void printQR();         // Prints the actual QR code to the terminal.
-  void printData();       // Prints encoded QR data.
+  void printQR();         
+  void printData();       
 
  private:
   void determineEncoding(std::string_view);
@@ -77,45 +77,47 @@ class QRCode {
   int kanjiCapacity(int);
 
   // Functions that set blocks and draws blocks.
-  void setFuncBlocks(int, int, bool); // Helper function to set function blocks to make sure they do not get overwritten.
-  void setFinderBlocks(int, int);     // Sets all finder blocks in the correct location
-  void setAlignmentBlocks(int, int);  // Helper function to set aligment blocks.
-  void drawAlignmentBlocks();         // Draws all alignment blocks
-  void drawPatterns();                // Draws all timing blocks, finder blocks, aligment blocks, format blocks, and version blocks.
-  void drawCodewords();               // Draws all codewords into the QR code, without overwriting function blocks.
-  void drawFormat(int);               // Draws format information (Error correction level and mask).
-  void drawVersion();                 // Draws version data for versions 7 - 40.
-  void mask(int);                     // Applies a mask to the data bits.
+  void setFuncBlocks(int, int, bool); 
+  void setFinderBlocks(int, int);     
+  void setAlignmentBlocks(int, int);  
+  void drawAlignmentBlocks();         
+  void drawPatterns();                
+  void drawCodewords();               
+  void drawFormat(int);               
+  void drawVersion();                 
+  void mask(int);                     
 
   // Encoding functions
-  std::vector<std::uint8_t> encodeText(std::string_view);                   // Encodes text based on encoding method.
-  std::vector<std::uint8_t> generateEDC(const std::vector<std::uint8_t>&, int);   // Generates the correct error data correction codewords.
-  std::vector<std::uint8_t> addEDCInterleave(const std::vector<std::uint8_t>&);   // Splits data into blocks, appends EDC, and interleaves bits.
+  std::vector<std::uint8_t> encodeText(std::string_view);                   
+  std::vector<std::uint8_t> generateEDC(const std::vector<std::uint8_t>&, int);   
+  std::vector<std::uint8_t> addEDCInterleave(const std::vector<std::uint8_t>&);   
 
   // Reed Solomon Math 
-  void rsGenerateLogExp();                                             // Generates logarithmic and exponential tables.
-  std::uint8_t reedSolomonMult(std::uint8_t, std::uint8_t);            // Returns the correct exponent for multiplication.
-  std::uint8_t reedSolomonDiv(std::uint8_t, std::uint8_t);             // Returns the correct exponent for division.
-  std::vector<std::uint8_t> reedSolomonPolyMult(const std::vector<std::uint8_t>&, const std::vector<std::uint8_t>&);  // Polynomial multiplication.
-  std::vector<std::uint8_t> reedSolomonPolyDiv(const std::vector<std::uint8_t>&, const std::vector<std::uint8_t>&); // Divides two polynomials and returns the remainder.
-  std::vector<std::uint8_t> rsGeneratePoly(int);                       // Generates a polynomial of degree 'n' to find the remainder in RS division.
+  void rsGenerateLogExp();                                             
+  std::uint8_t reedSolomonMult(std::uint8_t, std::uint8_t);            
+  std::uint8_t reedSolomonDiv(std::uint8_t, std::uint8_t);             
+  std::vector<std::uint8_t> rsPolyMult(const std::vector<std::uint8_t>&, 
+                                       const std::vector<std::uint8_t>&);  
+  std::vector<std::uint8_t> rsPolyDiv(const std::vector<std::uint8_t>&, 
+                                      const std::vector<std::uint8_t>&); 
+  std::vector<std::uint8_t> rsGeneratePoly(int);                       
 
-  int formatBits(ErrCor); // Returns a value from 0 to 3 depending on error correction level
+  int formatBits(ErrCor); 
   
-  int version_;                                // Version number of QR code
-  int size_;                                   // Height and Witdh of QR code
-  int mask_;                                   // Mask pattern used
-  std::string plain_text_;                     // Original text
-  ErrCor correctionLevel_;                     // Error correction level for the QR Code
-  std::vector<std::vector<bool> > blocks_;     // Blocks that make up the QR code 
-  std::vector<std::vector<bool> > funcBlock_;  // Blocks that will not be masked
-  std::vector<std::uint8_t> data_;             // Text encoded into bytes with EDC
-  std::vector<std::uint8_t> rsLog_;            // Log values for Reed Soloman algorithm
-  std::vector<std::uint8_t> rsExp_;            // Exponent values for Reed Soloman algorithm
-  const Encoding* kEncoding_;                               // Encoding method used
-  static const std::string kAlphanumericChar_;              // Valid alphanumeric char set
-  static const std::int8_t kEC_codewords_per_block_[4][41]; // Error correction codewords per block
-  static const std::int8_t kErr_corr_blocks_[4][41];        // Number of error correction blocks
+  int version_;                               // Version number of QR code
+  int size_;                                  // Height and Witdh of QR code
+  int mask_;                                  // Mask pattern used
+  std::string plain_text_;                    // Original text
+  ErrCor correctionLevel_;                    // Correction level for QR Code
+  std::vector<std::vector<bool> > blocks_;    // Blocks that make up the QR code 
+  std::vector<std::vector<bool> > funcBlock_; // Blocks that will not be masked
+  std::vector<std::uint8_t> data_;            // Text encoded into bytes + EDC
+  std::vector<std::uint8_t> rsLog_;           // Log values for RS algorithm
+  std::vector<std::uint8_t> rsExp_;           // Exp values for RS algorithm
+  const Encoding* kEncoding_;                 // Encoding method used
+  static const std::string kAlphanumericChar_;              
+  static const std::int8_t kEC_codewords_per_block_[4][41]; 
+  static const std::int8_t kErr_corr_blocks_[4][41];        
 }; // QRCode
 
 #endif // QR_H_

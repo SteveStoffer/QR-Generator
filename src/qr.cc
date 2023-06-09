@@ -43,7 +43,8 @@ void QRCode::BitBuffer::appendBits(std::uint32_t val, int len) {
 // ---------------------- QRCode Class ----------------------
 // QRCode constructor.
 QRCode::QRCode(std::string text, ErrCor err, int msk):
-                plain_text_(text), correctionLevel_(err), rsLog_(256), rsExp_(256) {
+                plain_text_(text), correctionLevel_(err), rsLog_(256), 
+                rsExp_(256) {
   if (msk < 0 || msk > 7) {
     msk = 0;
   }
@@ -81,6 +82,7 @@ std::vector<int> QRCode::determineAlignmentPos() const {
   if (version_ == 1) {
     return std::vector<int>();
   } else {
+    
     // Calculate distance between alignment patterns
     int intervals = std::floor(version_ / 7 + 1);
     int distance = 4 * version_ + 4;
@@ -105,16 +107,22 @@ int QRCode::getTotalModules(int version) {
   
   int alignBlocks = (version / 7) + 2;
 
-  return pow((version * 4 + 17), 2) - 3 * 8 * 8 - (pow(alignBlocks, 2) - 3) * 5 * 5 - 2 * (version * 4 + 1) 
-  + (alignBlocks - 2) * 5 * 2 - 2 * 15 - 1 - (version > 6 ? 2 * 3 * 6 : 0);
+  return pow((version * 4 + 17), 2) - 3 * 8 * 8 
+         - (pow(alignBlocks, 2) - 3) * 5 * 5 - 2 * (version * 4 + 1) 
+         + (alignBlocks - 2) * 5 * 2 - 2 * 15 - 1 
+         - (version > 6 ? 2 * 3 * 6 : 0);
 }
 
-// Returns total codewords per block depending on version and error correction level.
+// Returns total codewords per block depending on version and error 
+// correction level.
 int QRCode::getTotalCodewords(int version, ErrCor error_level) {
-  return (getTotalModules(version) >> 3) - (kErr_corr_blocks_[static_cast<int>(error_level)][version] * kEC_codewords_per_block_[static_cast<int>(error_level)][version]);
+  return (getTotalModules(version) >> 3) 
+         - (kErr_corr_blocks_[static_cast<int>(error_level)][version] 
+         * kEC_codewords_per_block_[static_cast<int>(error_level)][version]);
 }
 
-// Returns total capacity depending on version, error correction level, and encoding method.
+// Returns total capacity depending on version, error correction level, 
+// and encoding method.
 int QRCode::getCapacity(int version, ErrCor error_level) {
   int data_codewords = getTotalCodewords(version, error_level);
   int bits_per_char = kEncoding_->getBitsPerChar(version);
@@ -131,11 +139,12 @@ int QRCode::getCapacity(int version, ErrCor error_level) {
   }
 }
 
-// Sets version and error level. Chooses the smallest version possible with the highest
-// error correction without increasing version.
+// Sets version and error level. Chooses the smallest version possible with the
+// highest error correction without increasing version.
 void QRCode::setVersionAndErrorLevel(int mode, int length, ErrCor min_err_cor) {
   for (int i = 1; i <= 40; ++i) {
-    for (int j = static_cast<int>(ErrCor::kHigh); j >= static_cast<int>(min_err_cor); --j) {
+    for (int j = static_cast<int>(ErrCor::kHigh); 
+         j >= static_cast<int>(min_err_cor); --j) {
       int capacity = getCapacity(i, static_cast<ErrCor>(j));
       if (capacity >= length) {
         version_ = i;
@@ -196,12 +205,16 @@ int QRCode::kanjiCapacity(int bits) {
   return bits / 13;
 }
 
-// Helper function to set each function block to true or false.
+// Helper function to set function blocks to make sure they do not 
+// get overwritten.
 void QRCode::setFuncBlocks(int x, int y, bool isBlock) {
-  blocks_.at(static_cast<std::size_t>(y)).at(static_cast<std::size_t>(x)) = isBlock;
-  funcBlock_.at(static_cast<std::size_t>(y)).at(static_cast<std::size_t>(x)) = true;
+  blocks_.at(static_cast<std::size_t>(y)).at(static_cast<std::size_t>(x)) = 
+      isBlock;
+  funcBlock_.at(static_cast<std::size_t>(y)).at(static_cast<std::size_t>(x)) = 
+      true;
 }
 
+// Sets all finder blocks in the correct location
 void QRCode::setFinderBlocks(int x, int y) {
   for (int distance_y = -4; distance_y <= 4; ++distance_y) {
     for (int distance_x = -4; distance_x <= 4; ++distance_x) {
@@ -215,27 +228,34 @@ void QRCode::setFinderBlocks(int x, int y) {
   }
 }
 
+// Helper function to set aligment blocks.
 void QRCode::setAlignmentBlocks(int x, int y) {
   for (int distance_y = -2; distance_y <= 2; ++distance_y) {
     for (int distance_x = -2; distance_x <= 2; ++distance_x) {
-      setFuncBlocks(x + distance_x, y + distance_y, std::max(std::abs(distance_x), std::abs(distance_y)) != 1);
+      setFuncBlocks(x + distance_x, y + distance_y, 
+                    std::max(std::abs(distance_x), std::abs(distance_y)) != 1);
     }
   }
 }
 
+// Draws all alignment blocks
 void QRCode::drawAlignmentBlocks() {
   const std::vector<int> aligment_pattern = determineAlignmentPos();
   std::size_t intervals = aligment_pattern.size();
   for (std::size_t i = 0; i < intervals; ++i) {
     for (std::size_t j = 0; j < intervals; ++j) {
-      if (!((i == 0 && j == 0) || (i == 0 && j == intervals - 1) || (i == intervals - 1 && j == 0 ))) {
+      if (!((i == 0 && j == 0) || (i == 0 && j == intervals - 1) || 
+          (i == intervals - 1 && j == 0 ))) {
         setAlignmentBlocks(aligment_pattern.at(i), aligment_pattern.at(j));
       }
     }
   }
 }
 
+// Draws all timing blocks, finder blocks, aligment blocks, format blocks,
+// and version blocks.
 void QRCode::drawPatterns() {
+
   // Set each timing block, timing blocks are in row 6 and and column 6
   // alternating true / false.
   for (int i = 0; i < size_; ++i) {
@@ -253,6 +273,7 @@ void QRCode::drawPatterns() {
   drawVersion();
 }
 
+// Draws all codewords into the QR code, without overwriting function blocks.
 void QRCode::drawCodewords() {
   std::size_t i = 0;
 
@@ -273,7 +294,9 @@ void QRCode::drawCodewords() {
 
         // Don't overwrite function blocks.
         if (!funcBlock_.at(y).at(x) && i < data_.size() * 8) {
-          blocks_.at(y).at(x) = (((data_.at(i >> 3) >> (7 - static_cast<int>(i & 7))) & 1) != 0) ? true : false;
+          blocks_.at(y).at(x) = 
+              (((data_.at(i >> 3) 
+               >> (7 - static_cast<int>(i & 7))) & 1) != 0) ? true : false;
           ++i;
         }
       }
@@ -281,7 +304,9 @@ void QRCode::drawCodewords() {
   }
 }
 
+// Draws format information (Error correction level and mask).
 void QRCode::drawFormat(int mask) {
+
   // The format blocks are always made up of 15 bits.
   // Find the first 5 format bits by shifting the format bits left 3, 
   // and bitwise OR the mask.
@@ -324,11 +349,14 @@ void QRCode::drawFormat(int mask) {
   for (int i = 8; i < 15; ++i) {
     setFuncBlocks(8, size_ - 15 + i, ((bits >> i) & 1) != 0);
   }
+
   // Set the single dark block
   setFuncBlocks(8, size_ - 8, true);
 }
 
+// Draws version data for versions 7 - 40.
 void QRCode::drawVersion() {
+
   // No version blocks for v 1-6.
   if (version_ < 7) {
     return;
@@ -338,7 +366,9 @@ void QRCode::drawVersion() {
   // version in binary, the other 12 are the remainder of polynomial division
   // between the version and x^12 (x^12 + x^11 + x^10 + x^9... + x^2 + x + 1).
   int remainder = version_;
+
   for (int i = 0; i < 12; ++i) {
+
     // Basically multiplies remainder by 2, divides remainder by 2^11 * 7973
     // and XOR the calculated values.
     remainder = (remainder << 1) ^ ((remainder >> 11) * 0x1F25);
@@ -348,14 +378,15 @@ void QRCode::drawVersion() {
   // and bitwise OR the calculated remainder.
   long version_bits = static_cast<long>(version_) << 12 | remainder;
   
-  // Place the version bits in a 6x3 rectangle above the bottom left finder blocks, 
-  // and a 3x6 rectangle to the left of the top right finder blocks.
+  // Place the version bits in a 6x3 rectangle above the bottom left finder 
+  // blocks, and a 3x6 rectangle to the left of the top right finder blocks.
   for (int i = 0; i < 18; ++i) {
     setFuncBlocks(size_ - 11 + i % 3, i / 3, ((version_bits >> i) & 1) != 0);
     setFuncBlocks(i / 3, size_ - 11 + i % 3, ((version_bits >> i) & 1) != 0);
   }
 }
 
+// Applies a mask to the data bits.
 void QRCode::mask(int mask) {
   if (mask < 0 || mask > 7) {
     throw std::logic_error("Invalid mask.");
@@ -381,12 +412,13 @@ void QRCode::mask(int mask) {
       }
 
       // Apply the mask to all blocks that aren't function blocks.
-      blocks_.at(y).at(x) = blocks_.at(y).at(x) ^ (swap & !funcBlock_.at(y).at(x));
+      blocks_.at(y).at(x) = 
+          blocks_.at(y).at(x) ^ (swap & !funcBlock_.at(y).at(x));
     }
   }
 }
 
-// Encodes text without applying masks
+// Encodes text based on encoding method.
 std::vector<std::uint8_t> QRCode::encodeText(std::string_view text) {
   int mode = kEncoding_->getEncodingMode();
 
@@ -396,7 +428,8 @@ std::vector<std::uint8_t> QRCode::encodeText(std::string_view text) {
   buffer.appendBits(static_cast<std::uint32_t>(mode), 4);
 
   // Convert number of codewords to binary
-  buffer.appendBits(static_cast<std::uint32_t>(text.length()), kEncoding_->getBitsPerChar(version_));
+  buffer.appendBits(static_cast<std::uint32_t>(text.length()), 
+                    kEncoding_->getBitsPerChar(version_));
 
   if (mode == 1) { // Numeric
     // Split each number into 'groups' of three, then encode each group
@@ -442,7 +475,8 @@ std::vector<std::uint8_t> QRCode::encodeText(std::string_view text) {
 
     // Check for one remaining character
     if (max > 0) {
-      buffer.appendBits(static_cast<std::uint32_t>(group), 6); // Only 6 bits needed for one char.
+      // Only 6 bits needed for one char.
+      buffer.appendBits(static_cast<std::uint32_t>(group), 6); 
     }
 
   } else if (mode == 4) { // Byte
@@ -458,12 +492,15 @@ std::vector<std::uint8_t> QRCode::encodeText(std::string_view text) {
   }
 
   // Add terminator if possible
-  std::size_t capacity = static_cast<std::size_t>(getTotalCodewords(version_, correctionLevel_)) * 8;
+  std::size_t capacity = 
+      static_cast<std::size_t>(getTotalCodewords(version_, correctionLevel_))
+      * 8;
   buffer.appendBits(0, std::min(4, static_cast<int>(capacity - buffer.size())));
   buffer.appendBits(0, (8 - static_cast<int>(buffer.size() % 8)) % 8);
 
   // Add padding bytes until capacity is reached
-  for (std::uint8_t byte = 0xEC; buffer.size() < capacity; byte ^= 0xEC ^ 0x11) {
+  for (std::uint8_t byte = 0xEC; buffer.size() < capacity;
+       byte ^= 0xEC ^ 0x11) {
     buffer.appendBits(byte, 8);
   }
 
@@ -476,27 +513,35 @@ std::vector<std::uint8_t> QRCode::encodeText(std::string_view text) {
   return codewords;
 }
 
-std::vector<std::uint8_t> QRCode::generateEDC(const std::vector<std::uint8_t>& data, int codewords) {
+// Generates the correct error data correction codewords.
+std::vector<std::uint8_t> QRCode::generateEDC(
+    const std::vector<std::uint8_t>& data, int codewords) {
 
-  // The degree will always be the total amount of codewords - the amount of data codewords.
+  // The degree will always be the total amount of codewords - the amount
+  // of data codewords.
   int degree = codewords - data.size();
 
-  // Create a message polynomial with a size of total codewords. Copy the data codewords into
-  // it and fill the remaining space with zeros.
+  // Create a message polynomial with a size of total codewords. Copy the data
+  // codewords into it and fill the remaining space with zeros.
   std::vector<std::uint8_t> messagePoly(codewords, 0);
   std::copy(data.cbegin(), data.cend(), messagePoly.begin());
 
-  // Divide the message polynomial by the generated polynomial and return the remainder.
-  return reedSolomonPolyDiv(messagePoly, rsGeneratePoly(degree));
+  // Divide the message polynomial by the generated polynomial and return 
+  // the remainder.
+  return rsPolyDiv(messagePoly, rsGeneratePoly(degree));
 }
 
-std::vector<std::uint8_t> QRCode::addEDCInterleave(const std::vector<std::uint8_t>& data) {
+// Splits data into blocks, appends EDC, and interleaves bits.
+std::vector<std::uint8_t> QRCode::addEDCInterleave(
+    const std::vector<std::uint8_t>& data) {
 
   // Generate log and exponent tables
   rsGenerateLogExp();
 
-  int num_blocks = kErr_corr_blocks_[static_cast<int>(correctionLevel_)][version_];
-  int ECC_per_block = kEC_codewords_per_block_[static_cast<int>(correctionLevel_)][version_];
+  int num_blocks = 
+      kErr_corr_blocks_[static_cast<int>(correctionLevel_)][version_];
+  int ECC_per_block = 
+      kEC_codewords_per_block_[static_cast<int>(correctionLevel_)][version_];
   int total_codewords = getTotalModules(version_) >> 3; // Divides result by 8.
   int num_short_blocks = num_blocks - total_codewords % num_blocks;
   int short_block_len = total_codewords / num_blocks;
@@ -505,24 +550,30 @@ std::vector<std::uint8_t> QRCode::addEDCInterleave(const std::vector<std::uint8_
   std::vector<std::vector<std::uint8_t> > split_blocks;
   for (int i = 0, j = 0; i < num_blocks; ++i) {
 
-    // Calculate the amount of data codewords to be split into blocks by subtracting the number of
-    // error code correction codewords per block from the length of a short block. Add 1 if 
-    // splitting data into a long block.
-    std::vector<uint8_t> block(data.cbegin() + j, data.cbegin() + (j + short_block_len - ECC_per_block + (i < num_short_blocks ? 0 : 1)));
+    // Calculate the amount of data codewords to be split into blocks by 
+    // subtracting the number of error code correction codewords per block from
+    // the length of a short block. Add 1 if splitting data into a long block.
+    std::vector<uint8_t> block(data.cbegin() + j, data.cbegin() 
+      + (j + short_block_len - ECC_per_block + (i < num_short_blocks ? 0 : 1)));
 
-    // Increment 'j' by the size of the block to keep track of the index for the data codewords.
+    // Increment 'j' by the size of the block to keep track of the index 
+    // for the data codewords.
     j += static_cast<int>(block.size());
     
-    // Generate EDC for short and long blocks. Adding 1 to the length of the 'short_block_len'
-    // if generating EDC for long blocks. Append the EDC to the block and insert into the
-    // 'split_blocks' vector.
-    const std::vector<uint8_t> edc = generateEDC(block, short_block_len + (i < num_short_blocks ? 0 : 1));
-    if (i < num_short_blocks) block.push_back(0); // Pad short blocks with a '0' for now.
+    // Generate EDC for short and long blocks. Adding 1 to the length of the
+    // 'short_block_len'if generating EDC for long blocks. Append the EDC to the
+    // block and insert into the 'split_blocks' vector.
+    const std::vector<uint8_t> edc = 
+        generateEDC(block, short_block_len + (i < num_short_blocks ? 0 : 1));
+
+    // Pad short blocks with a '0' for now.
+    if (i < num_short_blocks) block.push_back(0); 
     block.insert(block.end(), edc.cbegin(), edc.cend());
     split_blocks.push_back(std::move(block));
   }
 
-  // Interleave each byte from every block, ignoring the padding for short blocks.
+  // Interleave each byte from every block, ignoring the padding for 
+  // the short blocks.
   std::vector<uint8_t> EDC_interleave;
   for (int i = 0; i < split_blocks.at(0).size(); ++i) {
     for (int j = 0; j < split_blocks.size(); ++j) {
@@ -536,6 +587,7 @@ std::vector<std::uint8_t> QRCode::addEDCInterleave(const std::vector<std::uint8_
 
 // ------------------------- Reed Solomon Math -------------------------
 
+// Generates logarithmic and exponential tables.
 void QRCode::rsGenerateLogExp() {
   // Create logarithmic and expontent tables for GF(256).
   // More info can be found here: 
@@ -548,15 +600,23 @@ void QRCode::rsGenerateLogExp() {
   rsExp_.at(255) = 1; // Exponent values cannot be zero.
 }
 
+// Returns the correct exponent for multiplication.
 std::uint8_t QRCode::reedSolomonMult(std::uint8_t x, std::uint8_t y) {
-  return x && y ? rsExp_.at((rsLog_.at(static_cast<std::size_t>(x)) + rsLog_.at(static_cast<std::size_t>(y))) % 255) : 0;
+  return x && y ? rsExp_.at((rsLog_.at(static_cast<std::size_t>(x)) 
+         + rsLog_.at(static_cast<std::size_t>(y))) % 255) : 0;
 }
 
+// Returns the correct exponent for division.
 std::uint8_t QRCode::reedSolomonDiv(std::uint8_t x, std::uint8_t y) {
-  return rsExp_.at((rsLog_.at(static_cast<std::size_t>(x)) + rsLog_.at(static_cast<std::size_t>(y))) % 255);
+  return rsExp_.at((rsLog_.at(static_cast<std::size_t>(x)) 
+         + rsLog_.at(static_cast<std::size_t>(y))) % 255);
 }
 
-std::vector<std::uint8_t> QRCode::reedSolomonPolyMult(const std::vector<std::uint8_t>& poly1, const std::vector<std::uint8_t>& poly2) {
+// Reed Solomon Polynomial multiplication.
+std::vector<std::uint8_t> QRCode::rsPolyMult(
+    const std::vector<std::uint8_t>& poly1, 
+    const std::vector<std::uint8_t>& poly2) {
+
   // 'coeffs' will be the resulting product polynomial, it will always be
   // poly1.size() + poly2.size() - 1 in length.
   std::vector<std::uint8_t> coeffs(poly1.size() + poly2.size() - 1, 0);
@@ -579,7 +639,10 @@ std::vector<std::uint8_t> QRCode::reedSolomonPolyMult(const std::vector<std::uin
   return coeffs;
 }
 
-std::vector<std::uint8_t> QRCode::reedSolomonPolyDiv(const std::vector<std::uint8_t>& dividend, const std::vector<std::uint8_t>& divisor) {
+// Divides two polynomials and returns the remainder.
+std::vector<std::uint8_t> QRCode::rsPolyDiv(
+    const std::vector<std::uint8_t>& dividend, 
+    const std::vector<std::uint8_t>& divisor) {
   std::size_t quotientLenth = dividend.size() - divisor.size() + 1;
 
   // Assume all dividends are a remainder for now.
@@ -588,15 +651,17 @@ std::vector<std::uint8_t> QRCode::reedSolomonPolyDiv(const std::vector<std::uint
   for (std::size_t count = 0; count < quotientLenth; ++count) {
     if (remainder[0]) { // If the first value is 0, just remove it.
 
-      // Divide the first term of the dividend polynomial by the first term of the divisor polynomial.
+      // Divide the first term of the dividend polynomial by the first term 
+      // of the divisor polynomial.
       std::uint8_t factor = reedSolomonDiv(remainder.at(0), divisor.at(0));
 
-      // Subtraction polynomial. The size will always be the same as the size of the remainder.
+      // Subtraction polynomial. The size will always be the same as the size 
+      // of the remainder.
       std::vector<std::uint8_t> subtr(remainder.size(), 0);
 
-      // Multiply the divisor polynomial by the above quotient and copy the values into the
-      // subtraction polynomial vector.
-      std::vector<std::uint8_t> product = reedSolomonPolyMult(divisor, { factor });
+      // Multiply the divisor polynomial by the above quotient and copy the
+      // values into the subtraction polynomial vector.
+      std::vector<std::uint8_t> product = rsPolyMult(divisor, { factor });
       std::copy(product.begin(), product.end(), subtr.begin());
 
       // Find the remainder by subtracting the result from the dividend.
@@ -607,6 +672,7 @@ std::vector<std::uint8_t> QRCode::reedSolomonPolyDiv(const std::vector<std::uint
       // Remove the first term from the remainder.
       remainder.erase(remainder.begin());
     } else {
+
       // Since the first term is 0, remove it.
       remainder.erase(remainder.begin());
     }
@@ -615,17 +681,19 @@ std::vector<std::uint8_t> QRCode::reedSolomonPolyDiv(const std::vector<std::uint
   return remainder;
 }
 
+// Generates a polynomial of degree 'n' to find the remainder in RS division.
 std::vector<std::uint8_t> QRCode::rsGeneratePoly(int degree) {
   std::vector<std::uint8_t> lastPoly = { 1 };
 
   // Generate a polynomial with 'degree' terms.
   for (std::size_t i = 0; i < degree; ++i) {
-    lastPoly = reedSolomonPolyMult(lastPoly, { 1, rsExp_.at(i) });
+    lastPoly = rsPolyMult(lastPoly, { 1, rsExp_.at(i) });
   }
 
   return lastPoly;
 }
 
+// Returns a value from 0 to 3 depending on error correction level.
 int QRCode::formatBits(ErrCor errorCorrectionLevel) {
   switch(errorCorrectionLevel) {
     case ErrCor::kLow      : return 1;
@@ -636,6 +704,7 @@ int QRCode::formatBits(ErrCor errorCorrectionLevel) {
   }
 }
 
+// Prints the actual QR code to the terminal.
 void QRCode::printQR() {
   for (int y = 0; y < size_; ++y) {
     for (int x = 0; x < size_; ++x) {
@@ -645,6 +714,7 @@ void QRCode::printQR() {
   }
 }
 
+// Prints encoded QR data.
 void QRCode::printData() {
   std::cout << "Data: ";
   for (int i = 0; i < data_.size(); ++i) {
@@ -662,11 +732,14 @@ const QRCode::Encoding QRCode::Encoding::kEci_     (   7,   0,       0,    0);
 const QRCode::Encoding QRCode::Encoding::kKanji_   (   8,   8,      10,   12);
 
 // Supported alphanumeric char set.
-const std::string QRCode::kAlphanumericChar_ = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ $%*+-./:";
+const std::string QRCode::kAlphanumericChar_ = 
+    "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ $%*+-./:";
 
-// The values for error correction code words per block and the number of error correction blocks
-// can be found at: https://www.thonky.com/qr-code-tutorial/error-correction-table
+// The values for error correction code words per block and the number of error
+// correction blocks can be found at: 
+// https://www.thonky.com/qr-code-tutorial/error-correction-table
 
+// Error correction codewords per block
 const std::int8_t QRCode::kEC_codewords_per_block_[4][41] = {
   // Version: (index[0] is a placeholder)
   //    1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40  Error Correction
@@ -676,6 +749,7 @@ const std::int8_t QRCode::kEC_codewords_per_block_[4][41] = {
 	{-1, 17, 28, 22, 16, 22, 28, 26, 26, 24, 28, 24, 28, 22, 24, 24, 30, 28, 28, 26, 28, 30, 24, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30}, // High
 };
 
+// Number of error correction blocks
 const std::int8_t QRCode::kErr_corr_blocks_[4][41] = {
   // Version: (index[0] is a placeholder)
   //   1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40  Error Correction
