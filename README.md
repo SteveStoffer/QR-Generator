@@ -23,6 +23,7 @@ Each QR code contains error correction blocks. There are four different levels o
 | Medium  | M       | ~15%          |
 | Quartile| Q       | ~25%          |
 | High    | H       | ~30%          |
+
 This means that if part of the QR code is covered, the code can still be read. With a higher
 correction level, more of the QR code can be covered. Some like to put a company logo in the center
 and use a higher correction level for advertising.
